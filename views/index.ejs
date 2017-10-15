@@ -1,0 +1,214 @@
+<!doctype html>
+<html>
+
+<head>
+    <title>Socket.IO chat</title>
+    <!-- Latest compiled and minified CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    <link href="https://maxcdn.bootstrapcdn.com/font-awesome/4.4.0/css/font-awesome.min.css">
+    <link rel="stylesheet" href="/assets/style.css">
+</head>
+
+<body class="main-background">
+    <div class="container" id="login">
+        <div class="login">
+            <form id="username-form">
+                <div class="input-group">
+                    <p class="align-center">take a user name</p>
+                    <input type="text" id="username" class="form-control login-input">
+                    <input type="submit" class="btn btn-primary login-input">
+                </div>
+            </form>
+        </div>
+    </div>
+    <div class="container" id="chat-app" style="display: none;margin-top:50px">
+
+        <div class="col-md-4">
+            <div class="row dark-background custom-nav">
+                <h3 class="align-center">
+                    <span class="green-foreground">Online</span>
+                    <small>Users</small>
+                </h3>
+            </div>
+
+            <div class="row dark-background">
+                <div class="usernames-box">
+                    <ul id="usernames" class="containerItems">
+
+                    </ul>
+                </div>
+
+                <div style="height: 40px;">
+                    <form class="bottom-tag">
+                        <div class="col-md-12">
+                            <input class="form-control" id="search-users" placeholder="Search Users ..." class="bottom-search-input">
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-8">
+            <div class="row dark-background custom-nav">
+                <div class="col-md-4">
+                    <h3 class="align-center">
+                        <small>You: </small>
+                        <span id="you" class="white">you </span>
+                    </h3>
+                </div>
+                <div class="col-md-4">
+                    <h3 class="align-center">
+                        <span class="green-foreground">Chat </span>
+                        <small>between</small>
+                    </h3>
+                </div>
+
+                <div class="col-md-4">
+                    <h3 class="align-center">
+                        <span id="contact" class="white">contact </span>
+
+                    </h3>
+                </div>
+
+            </div>
+            <div class="row white-background current-chat-dev">
+                <div class="current-chat-box">
+                    <ul id="messages">
+
+                    </ul>
+                </div>
+
+                <div class="input-message-box  dark-background">
+                    <form class="bottom-tag" id="message-form">
+                        <div class="col-md-10">
+                            <textarea id="message" disabled='true' class="form-control textarea-message" rows="3"></textarea>
+                        </div>
+                        <div class="col-md-2">
+                            <input type="submit" disabled='true' id="message-submit" class="form-control button-send">
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- end container -->
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://code.jquery.com/jquery-1.11.1.js"></script>
+    <script src="/assets/e-search.js"></script>
+    <script>
+        $('#search-users').search({}, 100);
+        $('#username').focus();
+        const socket = io();
+        let Selected;
+        $(function () {
+            $('#username-form').submit(function () {
+                socket.emit('new user', $('#username').val(), function (data) {
+                    if (data) {
+                        $("#you").html($('#username').val());
+                        $('#login').hide();
+                        $('#chat-app').show();
+                        $('#username').val('');
+                        $("#username").focus();
+                    } else {
+                        $('#username').val('');
+                        $('#login').show();
+                        $('#chat-app').hide();
+                        $('#message').focus();
+                        alert('username is token');
+                    }
+                });
+                return false;
+            });
+
+            socket.on('usernames', function (usernames) {
+                var html = '';
+                for (var i = 0; i < usernames.length; i++) {
+                    //check and dont add yourself to users list
+                    if (usernames[i] != $("#you").html()) {
+                        html += "<li data-search='" + usernames[i] + "' class='user-list' id='" + usernames[i] + "' onclick=getUserToChat('" + usernames[i] + "')>" +
+                            "<span class='user-list-img'><img src='/assets/img/you.png' width='40' height='40'></span>" +
+                            usernames[i] + "</li>";
+                    }
+                }
+                $('#usernames').html(html);
+            });
+            //inter message event
+            $('#message').keypress(function (e) {
+                if (e.which == 13) {
+                    sendMessage();
+                }
+            });
+            //submit message event
+            $('#message-form').submit(
+                function () {
+                    socket.emit('message', { message: $('#message').val(), receiver: Selected });
+                    $('#messages').append("<li class='chat-messages'><span class='current-user-img'>" +
+                        "<img src='/assets/img/you.png' width='30' height='30'>" +
+                        "</span>" + $('#message').val() + "</li>");
+                    $('#message').val('');
+                    $(".current-chat-box").scrollTop($(".current-chat-box")[0].scrollHeight);
+                    return false;
+                }
+            );
+
+
+            socket.on('messageContact', function (data) {
+                if ($(".active-" + data.sender).length) {
+                    $('#messages').append("<li class='chat-messages main-background'><span class='current-user-img'>" +
+                        "<img src='/assets/img/contact.png' width='30' height='30'>" +
+                        "</span>" + data.message + "</li>");
+                    $(".current-chat-box").scrollTop($(".current-chat-box")[0].scrollHeight);
+                } else {
+                    $("#" + data.sender).append('<span id="new-' + data.sender + '" class="pull-right badge" style="background: red;margin:15px; box-shadow: 0px 0px 8px white ">!</span>');
+                }
+            });
+        });
+
+        //sending message function
+        function sendMessage() {
+            socket.emit('message', { message: $('#message').val(), receiver: Selected });
+            $('#messages').append("<li class='chat-messages'><span class='current-user-img'>" +
+                "<img src='/assets/img/you.png' width='30' height='30'>" +
+                "</span>" + $('#message').val() + "</li>");
+            $('#message').val('');
+            $(".current-chat-box").scrollTop($(".current-chat-box")[0].scrollHeight);
+            return false;
+        }
+        //select user to chat
+        function getUserToChat(contact) {
+
+            if ($('#new-' + contact).length) {
+                $('#new-' + contact).remove();
+            }
+
+            $("#message").addClass("active-" + contact);
+            $("#message").attr("disabled", false);
+            $("#message-submit").attr("disabled", false);
+
+            $("#contact").html(contact);
+
+            Selected = contact;
+            var messagesDisplay = '';
+            socket.emit('contact', contact);
+            socket.on('messages', function (messages, you) {
+                for (var i = 0; i < messages.length; i++) {
+                    // messagesDisplay += "<li>" + messages[i].sender+": " + messages[i].receiver+": "+ messages[i].message + "</li>";
+                    if (messages[i].sender == you) {
+                        messagesDisplay += "<li class='chat-messages'><span class='current-user-img'>" +
+                            "<img src='/assets/img/you.png' width='30' height='30'>" +
+                            "</span>" + messages[i].message + "</li>";
+                    } else {
+                        messagesDisplay += "<li class='chat-messages main-background'><span class='current-user-img'>" +
+                            "<img src='/assets/img/contact.png' width='30' height='30'>" +
+                            "</span>" + messages[i].message + "</li>";
+                    }
+                }
+                $('#messages').html(messagesDisplay);
+                $(".current-chat-box").scrollTop($(".current-chat-box")[0].scrollHeight);
+            });
+        }
+
+    </script>
+</body>
+
+</html>

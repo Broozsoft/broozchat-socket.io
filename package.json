@@ -1,0 +1,30 @@
+{
+  "name": "broozchat",
+  "version": "1.0.0",
+  "description": "broozchat with socket.io and Mongo DB",
+  "main": "index.js",
+  "scripts": {
+    "test": "start"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Broozsoft/broozchat.git"
+  },
+  "keywords": [
+    "broozchat"
+  ],
+  "author": "Mohammad Hassani",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Broozsoft/broozchat/issues"
+  },
+  "homepage": "https://github.com/Broozsoft/broozchat#readme",
+  "dependencies": {
+    "ejs": "^2.5.7",
+    "express": "^4.15.2",
+    "mongoose": "^4.12.1",
+    "nodemon": "^1.12.1",
+    "socket.io": "^2.0.3"
+  },
+  "devDependencies": {}
+}
